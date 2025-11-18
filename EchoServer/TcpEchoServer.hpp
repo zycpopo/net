@@ -41,12 +41,8 @@ public:
     LOG(LogLevel::INFO)<<"create tcp socket success: "<<_listensockfd;
 
     //2.绑定socket fd
-    struct sockaddr_in local;
-    memset(&local,0,sizeof(local));
-    local.sin_family = AF_INET;
-    local.sin_port = htons(_port);
-    local.sin_addr.s_addr = htonl(INADDR_ANY);
-    if(bind(_listensockfd, (struct sockaddr*)&local, sizeof(local))!=0)
+    InetAddr local(_port);
+    if(bind(_listensockfd, local.Addr(), local.Length())!=0)
     {
       LOG(LogLevel::FATAL)<<"bind socket error";
       exit(SOCKET_BIND_ERR);
@@ -72,15 +68,20 @@ public:
       int sockfd = accept(_listensockfd,(struct sockaddr*)&peer,&len);
       if(sockfd < 0)
       {
-        LOG(LogLevel::INFO)<< "获取新连接成功: "<<sockfd;
+        LOG(LogLevel::WARNING)<< "接受客户端失败";
+        continue;
       }
+      InetAddr clientaddr(peer);
+
+      LOG(LogLevel::INFO) << "获取新连接成功： "<< sockfd
+          << "client addr: "<<client.ToString();
     }
   }
 
   ~TcpEchoServer()
   {}
 private:
-  int _listensockfd;
+  int _listensockfd;//监听fd
   uint16_t _port;
 };
 

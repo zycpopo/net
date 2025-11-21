@@ -16,14 +16,18 @@ private:
     void Net2Host()
     {
         _port = ntohs(_addr.sin_port);
-        _ip = inet_ntoa(_addr.sin_addr);
+        //_ip = inet_ntoa(_addr.sin_addr);
+        char ipbuffer[64];
+        inet_ntop(AF_INET, &(_addr.sin_addr.s_addr), ipbuffer, sizeof(ipbuffer));
+        _ip = ipbuffer;
     }
     void Host2Net()
     {
         memset(&_addr, 0, sizeof(_addr));
         _addr.sin_family = AF_INET;
         _addr.sin_port = htons(_port);
-        _addr.sin_addr.s_addr = inet_addr(_ip.c_str());
+        //_addr.sin_addr.s_addr = inet_addr(_ip.c_str());
+        inet_pton(AF_INET, _ip.c_str(), &(_addr.sin_addr.s_addr));
     }
 
 public:

@@ -1,5 +1,5 @@
-#ifndef __TCP_ECHO_SERVER_HPP__
-#define __TCP_ECHO_SERVER_HPP__
+#ifndef __COMMAND_SERVER_HPP__
+#define __COMMAND_SERVER_HPP__
 
 #include "Logger.hpp"
 #include "Comm.hpp"
@@ -21,14 +21,15 @@
 #include <signal.h>
 #include <sys/wait.h>
 #include <pthread.h>
-
-using task_t = std::function<void()>;
+#include <functional>
 
 static const int gdefaultfd=-1;
 static const int gbacklog = 8;
 static const int gport = 8080;
 
-class TcpEchoServer
+using callback_t = std::function<std::string (const std::string&)>;
+
+class CommandServer
 {
 private:
   void HandlerIO(int sockfd,InetAddr client)
@@ -41,10 +42,10 @@ private:
       if(n>0)
       {
         buffer[n]=0;
-        std::string echo_string = "server echo# ";
-        echo_string +=buffer;
         LOG(LogLevel::DEBUG)<<client.ToString() <<" say: "<< buffer;
-        write(sockfd,echo_string.c_str(),echo_string.size());
+
+        std::string result = _cb(buffer);
+        write(sockfd,result.c_str(),result.size());
       }
       else if(n==0)
       {
@@ -63,8 +64,9 @@ private:
     close(sockfd);
   }
 public:
-  TcpEchoServer(uint16_t port = gport)
-  : _listensockfd(gdefaultfd),
+  CommandServer(callback_t cb,uint16_t port = gport)
+  : _cb(cb),
+    _listensockfd(gdefaultfd),
     _port(port)
   {}
 
@@ -104,12 +106,12 @@ public:
   class ThreadData
   {
     public:
-        ThreadData(int sockfd,TcpEchoServer *self,const InetAddr &addr)
+        ThreadData(int sockfd,CommandServer *self,const InetAddr &addr)
           :_sockfd(sockfd),_self(self),_addr(addr)
         {}
     public:
         int _sockfd;
-        TcpEchoServer *_self;
+        CommandServer *_self;
         InetAddr _addr;
   };
 
@@ -140,53 +142,19 @@ public:
       LOG(LogLevel::INFO) << "获取新连接成功： "<< sockfd
           << " client addr: "<<clientaddr.ToString();
 
-      //version-1 单线程(只允许一个客户端通信)仅测试
-      //HandlerIO(sockfd,clientaddr);
-
-      //version-2 多进程
-      // pid_t id=fork();
-      // if(id<0)
-      // {
-      //   LOG(LogLevel::FATAL)<<"资源不足,创建子进程失败";
-      //   exit(FORK_ERR);
-      // }
-      // else if(id==0)
-      // {
-      //   //子进程
-      //   close(_listensockfd);//关闭子进程_listendockfd,防止误改变，这样子关闭不影响父进程的——listensockfd
-      //   if(fork()>0)
-      //       exit(OK);
-        
-      //   //孙子进程
-      //   HandlerIO(sockfd , clientaddr);
-      //   exit(OK);
-      // }
-      // else
-      // {
-      //   close(sockfd);//父进程用不上，还防止误用；关闭无用fd，规避fd泄露
-      //   //父进程
-      //   pid_t rid = waitpid(id,nullptr,0);
-      //   (void)rid;
-      // }
-
-      //version-3 多线程
-      // pthread_t tid;
-      // ThreadData *td=new ThreadData(sockfd,this,clientaddr);  
-      // pthread_create(&tid,nullptr,Routine,(void*)td);
-
-      //version-4 线程池
-      ThreadPool<task_t>::GetInstance()->Enqueue([this, sockfd, clientaddr](){
-                this->HandlerIO(sockfd, clientaddr);
-            });
+      pthread_t tid;
+      ThreadData *td = new ThreadData(sockfd,this,clientaddr);
+      pthread_create(&tid,nullptr,Routine,(void*)td);
 
     }
   }
 
-  ~TcpEchoServer()
+  ~CommandServer()
   {}
 private:
   int _listensockfd;//监听fd
   uint16_t _port;
+  callback_t _cb;
 };
 
 

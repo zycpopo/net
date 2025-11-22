@@ -1,17 +1,23 @@
 #include "Socket.hpp"
+#include "TcpServer.hpp"
 #include <memory>
 
-int main()
+void Usage(std::string proc)
 {
-  EnableConsoleLogStrategy();
-  std::unique_ptr<Scket> tsock = std::make_unique<TcpSocket>();
-  tscok->BuildListenSocketMethod(8080);
+  std::cerr << "Usage: " << proc << " localport" << std::endl;
+}
 
-  while(true)
+int main(int argc, char *argv[])
+{
+  if (argc != 2)
   {
-    sleep(1);
+    Usage(argv[0]);
+    exit(0);
   }
+  uint16_t serverport = std::stoi(argv[1]);
+  EnableConsoleLogStrategy();
+  std::unique_ptr<TcpServer> tsock = std::make_unique<TcpServer>(serverport);
 
+  tsock->Run();
   return 0;
-
 }

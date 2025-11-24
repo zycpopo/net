@@ -8,12 +8,13 @@
 #include "InetAddr.hpp"
 #include "Socket.hpp"
 
+using callback_t = std::function<std::string(std::string&)>;//规定服务器执行的任务类型
 
 class TcpServer
 {
 public:
-    TcpServer(int port)
-    : _port(port),
+    TcpServer(int port,callback_t cb)
+    : _port(port), _cb(cb),
       _listensocket(std::make_unique<TcpSocket>())
     {
       _listensocket->BuildListenSocketMethod(_port);
@@ -28,7 +29,9 @@ public:
         if(n > 0)
         {
           LOG(LogLevel::DEBUG) << addr.ToString()<<"# "<<inbuffer;
-          
+          std::string send_str = _cb(inbuffer); 
+          if(send_str.empty())
+                    continue;
           sockfd->Send(inbuffer);
         }
         else if(n == 0)
@@ -71,4 +74,5 @@ public:
 private:
     int _port;
     std::unique_ptr<Socket> _listensocket;
+    callback_t _cb;
 };

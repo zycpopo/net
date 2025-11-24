@@ -42,6 +42,18 @@ public:
 
         return true;
     }
+    int X()
+    {
+        return _x;
+    }
+    int Y()
+    {
+        return _y;
+    }
+    char Oper()
+    {
+        return _oper;
+    }
     ~Request()
     {
     }
@@ -87,7 +99,18 @@ public:
 
         return true;
     }
-    
+    void SetResult(int r)
+    {
+        _result = r;
+    }
+    void SetCode(int c)
+    {
+        _code = c;
+    }
+    void Print()
+    {
+        std::cout << _result << "[" << _code << "]" << std::endl;
+    }
     ~Response()
     {
     }

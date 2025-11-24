@@ -1,5 +1,6 @@
 #include "Socket.hpp"
 #include "TcpServer.hpp"
+#include "protocol.hpp"
 #include <memory>
 
 void Usage(std::string proc)
@@ -9,7 +10,7 @@ void Usage(std::string proc)
 
 std::string Test(std::string &inbuffer)
 {
-
+    std::string jsonstr;
 }
 
 int main(int argc, char *argv[])
